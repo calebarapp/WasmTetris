@@ -47,6 +47,12 @@ pub fn draw_frame(game: &GameState) {
                     50.0,
                     WHITE,
                 );
+                draw_text_centered(
+                    &format!("Score: {0}", game.score.to_string()),
+                    360.0,
+                    20.0,
+                    WHITE,
+                );
             }
         }
 }

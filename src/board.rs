@@ -20,7 +20,6 @@ pub enum Cell {
     Empty,
     Filled(Color) 
 }
-
 pub struct Board {
     height: usize,
     width: usize,
