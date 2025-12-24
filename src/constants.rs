@@ -1,0 +1,14 @@
+pub const SQUARE_SIZE:f32                   = 30.0;
+pub const LINE_THICKNESS:f32                = 2.0;
+pub const GRID_H: usize                     = 22;
+pub const GRID_W: usize                     = 10;
+pub const DEFAULT_SPAWN_COL:i32             = 5;
+pub const BOARD_W:f32                       = GRID_W as f32 * SQUARE_SIZE;
+pub const BOARD_H:f32                       = GRID_H as f32 * SQUARE_SIZE;
+pub const SECOND: f32                       = 1000.0;
+pub const FALL_INTERVAL_MS:f32              = 500.0;
+pub const INPUT_INTERVAL_MS:f32             = 100.0;
+pub const LOCK_DELTA_THRESHOLD:f32          = 500.0;
+pub const CLEAR_ROW_FLASH_INTERVAL_MS:f32   = 100.0;
+pub const CLEAR_ROW_INTERVAL_MS:f32         = 500.0;
+pub const PRE_LOCK_MOVES_ALLOWED: u8        = 15;

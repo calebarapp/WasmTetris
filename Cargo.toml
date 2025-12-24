@@ -1,0 +1,10 @@
+[package]
+name = "wasm_tetris"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+macroquad = "0.4.14"
+
+[alias]
+watch-wasm = "watch -w src -w Cargo.toml -s 'pwsh ./build-web.ps1'"
