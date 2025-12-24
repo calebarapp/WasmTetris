@@ -67,6 +67,9 @@ impl Board {
     pub fn cell_filled(&self, col:i32, row:i32) -> bool {
         self.cells[self.cell_idx(col, row)] != Cell::Empty
     }
+    pub fn piece_surrounded(&self, piece: &Piece ) -> bool {
+        false
+    }
     pub fn full_rows(&self) -> Vec<i32> {
         // search from bottom of board to top checking for complete lines
         // abort search through coloumns when empty column is found
