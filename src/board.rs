@@ -20,7 +20,6 @@ pub enum Cell {
     Empty,
     Filled(Color) 
 }
-
 pub struct Board {
     height: usize,
     width: usize,
@@ -67,6 +66,9 @@ impl Board {
     pub fn cell_filled(&self, col:i32, row:i32) -> bool {
         self.cells[self.cell_idx(col, row)] != Cell::Empty
     }
+    pub fn piece_surrounded(&self, piece: &Piece ) -> bool {
+        false
+    }
     pub fn full_rows(&self) -> Vec<i32> {
         // search from bottom of board to top checking for complete lines
         // abort search through coloumns when empty column is found
@@ -90,11 +92,12 @@ impl Board {
         out
     }
     
-    pub fn clear_and_collapse(&mut self, rows: &Vec<i32>) {
+    pub fn clear_and_collapse(&mut self) {
+        let rows = self.full_rows();
         if rows.is_empty() { return; }
 
         let mut cleared = vec![false; GRID_H as usize];
-        for &row in rows {
+        for row in rows {
             if (0..GRID_H as i32).contains(&row) {
                 cleared[row as usize] = true;
             }

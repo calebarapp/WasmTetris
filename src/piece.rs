@@ -86,7 +86,6 @@ impl Piece {
             RotDir::CW => (self.orientation + 1) & 3,
             RotDir::CCW => (self.orientation + 3) & 3
         };
-
         let base = Pose { col: self.col, row: self.row, orientation: new_orient };
         info!( "rotate: [{}]", new_orient );
         self.try_offsets( board, base )

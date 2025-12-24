@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "watch-wasm",
+      "type": "shell",
+      "command": "cargo",
+      "args": [
+        "watch",
+        "-w", "src",
+        "-w", "Cargo.toml",
+        "-s", "powershell -NoProfile -ExecutionPolicy Bypass -File ./build-web.ps1"
+      ],
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}
