@@ -20,9 +20,11 @@ pub fn draw_frame(game: &GameState) {
             PlayState::Playing => {
                 draw_board(&game.board);
                 draw_piece(&game.current);
+                draw_score(game.score);
             },
             PlayState::ClearBlocks => {
                 draw_board(&game.board);
+                draw_score(game.score);
             },
             PlayState::Paused => {
 
@@ -52,48 +54,39 @@ fn draw_board(board:&Board) {
 fn render_background() {
     // draw boundaries 
     let offset_x = (screen_width() - BOARD_W) / 2.0;
-    let offset_y = (screen_height() - BOARD_H) / 2.0;
-    
-    // draw_rectangle_lines(
-    //     offset_x,
-    //     offset_y,
-    //     BOARD_W as f32,
-    //     BOARD_H as f32,
-    //     2.0,
-    //     GRAY,
-    // );
-
-
-// left border
-draw_line(
-    offset_x,
-    0.0,
-    offset_x,
-    BOARD_H as f32,
-    2.0,
-    GRAY,
-);
-
-// right border
-draw_line(
-    offset_x + BOARD_W as f32,
-    0.0,
-    offset_x + BOARD_W as f32,
-    BOARD_H as f32,
-    2.0,
-    GRAY,
-);
-
-// bottom border
-draw_line(
-    offset_x,
-    BOARD_H as f32,
-    offset_x + BOARD_W as f32,
-    BOARD_H as f32,
-    2.0,
-    GRAY,
-);
-
+    // left border
+    draw_line(
+        offset_x,
+        0.0,
+        offset_x,
+        BOARD_H as f32,
+        2.0,
+        GRAY,
+    );
+    // right border
+    draw_line(
+        offset_x + BOARD_W as f32,
+        0.0,
+        offset_x + BOARD_W as f32,
+        BOARD_H as f32,
+        2.0,
+        GRAY,
+    );
+    // bottom border
+    draw_line(
+        offset_x,
+        BOARD_H as f32,
+        offset_x + BOARD_W as f32,
+        BOARD_H as f32,
+        2.0,
+        GRAY,
+    );
+}
+fn draw_score(score: i32) {
+    let text = score.to_string();
+    let dims = measure_text(&text, None, 24 as u16, 1.0);
+    let x = screen_width() - dims.width - 15.0;
+    draw_text(&text, x, 50.0, 24.0, WHITE );
 }
 pub fn coords_to_pixels(col: i32, row: i32) -> (f32, f32) {
     (col as f32 * SQUARE_SIZE, row as f32 * SQUARE_SIZE)
@@ -119,9 +112,7 @@ pub fn draw_block(col:i32, row:i32, fill: Color, border:Color) {
 }
 pub fn draw_text_centered(text: &str, y: f32, size: f32, color: Color) {
     let dims = measure_text(text, None, size as u16, 1.0);
-
     let x = (screen_width() - dims.width) * 0.5;
-
     draw_text(text, x, y, size, color);
 }
 fn draw_buttons(game:&GameState ) {

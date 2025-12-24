@@ -19,7 +19,7 @@ pub struct GameState {
     pub next: Piece,
     pub full_rows: Vec<i32>,
     pub flash_anim_color: Color,
-    pub score: usize,
+    pub score: i32,
     fall_timer: f32,
     input_timer:f32,
     lock_delta: f32,
@@ -53,6 +53,10 @@ impl GameState {
     pub fn new() -> Self {
         Self::default()
     }
+
+// ======================================
+// Main Update Loop
+// ======================================
     // Update should only update game state, not render/draw
     pub fn update(&mut self) {
         let dt = get_frame_time() * SECOND; // seconds since last frame
@@ -60,67 +64,118 @@ impl GameState {
         // gravity / lock
         match self.play_state {
             PlayState::Start => {
-                if is_key_pressed(KeyCode::Enter) {
-                    // init game
-                    self.next = self.get_next_piece();
-                    self.play_state = PlayState::Playing;
-                }
+                self.exec_start_frame();
             },
             PlayState::Playing => {
-                if self.current.kind == PieceKind::None {
-                    self.spawn_next_piece();
-                }
-                self.handle_input_playing(dt);
-                self.try_drop_current_piece(dt);
-                self.try_piece_lock(dt);
-                self.try_clear_lines();
+                self.exec_playing_frame(dt);
             },
             PlayState::ClearBlocks => {
-                self.handle_flash_animation(dt);
-                self.try_clear_full_rows(dt);
+                self.exec_clearblock_frame(dt);
             },
             PlayState::Paused => {
                 
             },
             PlayState::GameOver => {
-                if is_key_pressed(KeyCode::Enter) {
-                    *self = Self::default();
-                    self.play_state = PlayState::Start;
-                }
+                self.exec_gameover_frame();
             }
         }
+    }
+    // ===================================================
+    //Game Over
+    // ===================================================
+    fn exec_gameover_frame(&mut self) {
+        if is_key_pressed(KeyCode::Enter) {
+            *self = Self::default();
+            self.play_state = PlayState::Start;
+        }
+    }
+
+    // ===================================================
+    //Start Menu
+    // ===================================================
+    fn exec_start_frame(&mut self) {
+        if is_key_pressed(KeyCode::Enter) {
+            // init game
+            self.next = self.get_next_piece();
+            self.play_state = PlayState::Playing;
+        }
+    }
+    
+    // ===================================================
+    //Playing
+    // ===================================================
+    fn exec_playing_frame(&mut self, dt: f32) {
+        if self.current.kind == PieceKind::None {
+            self.spawn_next_piece();
+        }
+        self.handle_input_playing(dt);
+        self.try_drop_current_piece(dt);
+        self.try_piece_lock(dt);
+        self.try_clear_lines();
     }
     // handle user input
     fn handle_input_playing(&mut self, delta: f32) {
         self.player_interacting = false;
-        if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::X) {
-            self.current.try_rotate( RotDir::CW, &self.board );
-            self.player_interacting = true;
-        }
-        if is_key_pressed(KeyCode::Z) {
-            self.current.try_rotate(RotDir::CCW, &self.board );
-            self.player_interacting = true;
-        }
+        self.process_key_press();
+        self.process_key_hold(delta);
+    }
+
+    fn process_key_hold(&mut self, delta: f32) {
         self.input_timer += delta;
-        if self.input_timer >= INPUT_INTERVAL_MS {
-            self.input_timer -= INPUT_INTERVAL_MS;
-            if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
-                //move left
-                self.current.try_move_piece( -1, 0, &self.board );
-                self.player_interacting = true;
-            }
-            if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
-                //move right
-                self.current.try_move_piece( 1, 0, &self.board );
-                self.player_interacting = true;
-            }
-            if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
-                if self.current.try_move_piece( 0, 1, &self.board ) {
-                    // SCORE: +2 Points for soft drop
-                    self.score += 2;
-                }
-            }
+        if self.input_timer < INPUT_INTERVAL_MS {
+            return;
         }
+        self.input_timer -= INPUT_INTERVAL_MS;
+        if is_key_down(KeyCode::Left) || is_key_down(KeyCode::A) {
+            self.move_left();
+        }
+        if is_key_down(KeyCode::Right) || is_key_down(KeyCode::D) {
+            self.move_right();
+        }
+        // Hold keys
+        
+        // soft Drop
+        if is_key_down(KeyCode::Down) || is_key_down(KeyCode::S) {
+            self.soft_drop();
+        }
+    }
+    
+    fn process_key_press(&mut self) {
+        self.player_interacting = false;
+        // Rotate CW
+        if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::X) {
+            self.player_interacting = true;
+            self.current.try_rotate( RotDir::CW, &self.board );
+        }
+        // Rotate CCW
+        if is_key_pressed(KeyCode::Z) {
+            self.player_interacting = true;
+            self.current.try_rotate(RotDir::CCW, &self.board );
+        }
+        // HardDrop
+        if is_key_pressed(KeyCode::Space) {
+            self.player_interacting = true;
+            // Todo: Hard drop
+        }
+    }
+
+    fn soft_drop(&mut self) {
+        if self.current.try_move_piece( 0, 1, &self.board ) {
+            // SCORE: +2 Points for soft drop
+            self.score += 2;
+        }
+    }
+
+fn move_right(&mut self) {
+        //move right
+        self.current.try_move_piece( 1, 0, &self.board );
+        self.player_interacting = true;
+    }
+
+fn move_left(&mut self) {
+        //move left
+        self.current.try_move_piece( -1, 0, &self.board );
+        self.player_interacting = true;
     }
     fn try_drop_current_piece(&mut self, delta: f32) {
         // Move block
@@ -130,9 +185,13 @@ impl GameState {
             self.clear_lock_timer();
             if self.current.try_move_piece( 0, 1, &self.board ) {
                 // SCORE: +1 for gravity drop
-                self.score += 1;
+                self.update_score(1);
             }
         }
+    }
+
+fn update_score(&mut self, points: i32) {
+        self.score += points;
     }
     fn clear_lock_timer(&mut self) {
         self.lock_delta = 0.0;
@@ -176,6 +235,14 @@ impl GameState {
         if self.full_rows.len() > 0 {
             self.play_state = PlayState::ClearBlocks;
         }
+    }
+
+    // ===================================================
+    // Clear Blocks
+    // ===================================================
+    fn exec_clearblock_frame(&mut self, dt: f32) {
+        self.handle_flash_animation(dt);
+        self.try_clear_full_rows(dt);
     }
     fn handle_flash_animation(&mut self, delta: f32) {
         self.clear_row_flash_timer += delta;
