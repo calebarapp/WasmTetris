@@ -27,7 +27,18 @@ pub fn draw_frame(game: &GameState) {
                 draw_score(game.score);
             },
             PlayState::Paused => {
-
+                draw_text_centered(
+                    "PAUSED",
+                    300.0,
+                    50.0,
+                    WHITE,
+                );
+                 draw_text_centered(
+                    "Press ESC to Continue",
+                    360.0,
+                    20.0,
+                    WHITE,
+                );
             },
             PlayState::GameOver => {
                 draw_text_centered(

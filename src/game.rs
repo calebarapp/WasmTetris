@@ -41,7 +41,6 @@ pub struct GameState {
     pub next_piece: Piece,
     pub flash_anim_color: Color,
     pub score: i32,
-
     // gamestate
     player_interacting: bool,
     pre_lock_moves:u8,
@@ -50,15 +49,12 @@ pub struct GameState {
     last_clear_result: ClearResult,
     back_to_back: bool,
     lines_cleared:i32,
-
     // timing
     fall_timer: f32,
     input_timer:f32,
     lock_delta: f32,
     clear_row_timer: f32,
-    clear_row_flash_timer: f32,
-    
-    
+    clear_row_flash_timer: f32,    
 }
 impl Default for GameState {
     fn default() -> Self{
@@ -83,8 +79,6 @@ impl Default for GameState {
             clear_row_timer: 0.0,
             clear_row_flash_timer: 0.0,
             flash_anim_color: WHITE,
-
-
         }
     }
 
@@ -113,13 +107,24 @@ impl GameState {
                 self.exec_clearblock_frame(dt);
             },
             PlayState::Paused => {
-                
+                self.exec_paused_frame();
             },
             PlayState::GameOver => {
                 self.exec_gameover_frame();
             }
         }
     }
+    // ===================================================
+    // Pause
+    // ===================================================
+    fn exec_paused_frame(&mut self) {
+        if is_key_pressed(KeyCode::Escape) {
+            self.play_state = PlayState::Playing;
+        }
+
+    }
+
+
     // ===================================================
     //Game Over
     // ===================================================
@@ -153,26 +158,18 @@ impl GameState {
         self.try_piece_lock(dt);
         self.try_clear_lines(); 
     }
-    // handle user input
     fn handle_input_playing(&mut self, delta: f32) {
         self.player_interacting = false;
         let press_action = self.process_key_press();
-        let hold_actions= self.process_key_hold(delta);
-        // HardDrop > SoftDrop > Move > rotate
-        let mut new_state = Actions::None;
-        if press_action == Actions::HardDrop {
-            new_state = press_action;
-        } else if hold_actions == Actions::SoftDrop ||  hold_actions == Actions::Moved {
-            new_state = hold_actions;
-        } else {
-            new_state = press_action;
-        }
-        // idle
+        let hold_action  = self.process_key_hold(delta);
+
+        // Decide which action “wins” for this frame
+        let new_state = self.prioritize_actions(press_action, hold_action);
         if new_state != Actions::None {
             self.last_action = new_state;
+            self.player_interacting = true;
         }
     }
-
     fn process_key_hold(&mut self, delta: f32) -> Actions {
         self.input_timer += delta;
         if self.input_timer < INPUT_INTERVAL_MS {
@@ -195,7 +192,6 @@ impl GameState {
     }
 
     fn process_key_press(&mut self) -> Actions {
-        self.player_interacting = false;
         // Rotate CW
         if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::X) {
             self.player_interacting = true;
@@ -215,8 +211,33 @@ impl GameState {
             self.player_interacting = true;
             // Todo: Hard drop
         }
+        if is_key_pressed(KeyCode::Enter) ||  is_key_pressed(KeyCode::Escape) {
+            self.play_state = PlayState::Paused;
+        }
         return Actions::None;
     }
+    fn prioritize_actions(&self, press: Actions, hold: Actions) -> Actions {
+    use Actions::*;
+
+    match (press, hold) {
+        // Highest: Hard drop (if it happened at all)
+        (HardDrop, _) => HardDrop,
+
+        // Then any held soft drop
+        (_, SoftDrop) => SoftDrop,
+
+        // Then any held movement
+        (_, Moved)    => Moved,
+
+        // Then a press-based rotate (or other press-only actions)
+        (Rotate, _)   => Rotate,
+
+        // Otherwise nothing relevant
+        _             => None,
+    }
+}
+
+
 
     fn soft_drop(&mut self) {
         if self.current_piece.try_move_piece( 0, 1, &self.board ) {
@@ -387,4 +408,5 @@ impl GameState {
             self.play_state = PlayState::Playing;
         }
     }
+    
 }
