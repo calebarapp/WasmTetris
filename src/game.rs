@@ -13,30 +13,33 @@ pub enum PlayState {
     GameOver
 }
 pub struct GameState {
+    // public
     pub play_state: PlayState,
     pub board: Board,
-    pub current: Piece,
-    pub next: Piece,
-    pub full_rows: Vec<i32>,
+    pub current_piece: Piece,
+    pub next_piece: Piece,
     pub flash_anim_color: Color,
     pub score: i32,
+
+    // gamestate
+    player_interacting: bool,
+    pre_lock_moves:u8,
+
+    // timing
     fall_timer: f32,
     input_timer:f32,
     lock_delta: f32,
-    player_interacting: bool,
     clear_row_timer: f32,
     clear_row_flash_timer: f32,
-    pre_lock_moves:u8,
 }
 impl Default for GameState {
     fn default() -> Self{
         Self {
             board: Board::new(),
-            current: Piece::default(),
-            next: Piece::default(),
+            current_piece: Piece::default(),
+            next_piece: Piece::default(),
             play_state: PlayState::Start,            
             player_interacting: false,
-            full_rows: Vec::new(),
             fall_timer: 0.0,
             input_timer: 0.0,
             lock_delta: 0.0,
@@ -96,7 +99,7 @@ impl GameState {
     fn exec_start_frame(&mut self) {
         if is_key_pressed(KeyCode::Enter) {
             // init game
-            self.next = self.get_next_piece();
+            self.next_piece = self.get_next_piece_piece();
             self.play_state = PlayState::Playing;
         }
     }
@@ -105,11 +108,11 @@ impl GameState {
     //Playing
     // ===================================================
     fn exec_playing_frame(&mut self, dt: f32) {
-        if self.current.kind == PieceKind::None {
-            self.spawn_next_piece();
+        if self.current_piece.kind == PieceKind::None {
+            self.spawn_next_piece_piece();
         }
         self.handle_input_playing(dt);
-        self.try_drop_current_piece(dt);
+        self.try_drop_current_piece_piece(dt);
         self.try_piece_lock(dt);
         self.try_clear_lines();
     }
@@ -145,12 +148,12 @@ impl GameState {
         // Rotate CW
         if is_key_pressed(KeyCode::Up) || is_key_pressed(KeyCode::X) {
             self.player_interacting = true;
-            self.current.try_rotate( RotDir::CW, &self.board );
+            self.current_piece.try_rotate( RotDir::CW, &self.board );
         }
         // Rotate CCW
         if is_key_pressed(KeyCode::Z) {
             self.player_interacting = true;
-            self.current.try_rotate(RotDir::CCW, &self.board );
+            self.current_piece.try_rotate(RotDir::CCW, &self.board );
         }
         // HardDrop
         if is_key_pressed(KeyCode::Space) {
@@ -160,34 +163,32 @@ impl GameState {
     }
 
     fn soft_drop(&mut self) {
-        if self.current.try_move_piece( 0, 1, &self.board ) {
+        if self.current_piece.try_move_piece( 0, 1, &self.board ) {
             // SCORE: +2 Points for soft drop
-            self.score += 2;
+            self.update_score(1);
         }
     }
 
 fn move_right(&mut self) {
         //move right
-        self.current.try_move_piece( 1, 0, &self.board );
+        self.current_piece.try_move_piece( 1, 0, &self.board );
         self.player_interacting = true;
     }
 
 fn move_left(&mut self) {
         //move left
-        self.current.try_move_piece( -1, 0, &self.board );
+        self.current_piece.try_move_piece( -1, 0, &self.board );
         self.player_interacting = true;
     }
-    fn try_drop_current_piece(&mut self, delta: f32) {
+    fn try_drop_current_piece_piece(&mut self, delta: f32) {
         // Move block
         self.fall_timer += delta;
-        if self.fall_timer >= FALL_INTERVAL_MS {
-            self.fall_timer -= FALL_INTERVAL_MS;    
-            self.clear_lock_timer();
-            if self.current.try_move_piece( 0, 1, &self.board ) {
-                // SCORE: +1 for gravity drop
-                self.update_score(1);
-            }
+        if self.fall_timer < FALL_INTERVAL_MS {
+            return
         }
+        self.fall_timer -= FALL_INTERVAL_MS;    
+        self.clear_lock_timer();
+        self.current_piece.try_move_piece( 0, 1, &self.board );
     }
 
 fn update_score(&mut self, points: i32) {
@@ -198,11 +199,11 @@ fn update_score(&mut self, points: i32) {
     }
     fn try_piece_lock(&mut self, delta: f32) {
         // is grounded?
-        if self.current.can_move(0, 1, &self.board) {
+        if self.current_piece.can_move(0, 1, &self.board) {
             return;
         }
         //Invariant: Piece has Lock pending
-        // currently interacting? Allow 15 movements before locking
+        // current_piecely interacting? Allow 15 movements before locking
         if self.player_interacting && self.pre_lock_moves < PRE_LOCK_MOVES_ALLOWED {
             self.pre_lock_moves += 1;
             self.clear_lock_timer();
@@ -211,28 +212,28 @@ fn update_score(&mut self, points: i32) {
         // Lock piece
         self.lock_delta += delta;
         if self.lock_delta > LOCK_DELTA_THRESHOLD {
-            // lock! Save to board and clear current piece
+            // lock! Save to board and clear current_piece piece
             self.pre_lock_moves = 0;
-            self.board.lock_piece( &self.current );
-            self.current = Piece::default();
+            self.board.lock_piece( &self.current_piece );
+            self.current_piece = Piece::default();
         }
     }
-    fn get_next_piece(&mut self) -> Piece {
+    fn get_next_piece_piece(&mut self) -> Piece {
         let mut piece = Piece::random_piece();
         piece.try_kick( &self.board );
         piece
     }
-    fn spawn_next_piece(&mut self) {
-        self.current = self.next;
-        self.next = self.get_next_piece();
+    fn spawn_next_piece_piece(&mut self) {
+        self.current_piece = self.next_piece;
+        self.next_piece = self.get_next_piece_piece();
         
-        if !self.next.can_move( 0,0, &self.board) {
+        if !self.next_piece.can_move( 0,0, &self.board) {
             self.play_state = PlayState::GameOver
         }
     }
     fn try_clear_lines(&mut self) {
-        self.full_rows = self.board.full_rows();
-        if self.full_rows.len() > 0 {
+        let full_rows = self.board.full_rows();
+        if full_rows.len() > 0 {
             self.play_state = PlayState::ClearBlocks;
         }
     }
@@ -254,7 +255,7 @@ fn update_score(&mut self, points: i32) {
             } else {
                 self.flash_anim_color = WHITE;
             }
-            for &i in &self.full_rows {
+            for &i in &self.board.full_rows() {
                 self.board.set_row_color( self.flash_anim_color ,i );
             }
         }
@@ -263,10 +264,9 @@ fn update_score(&mut self, points: i32) {
         self.clear_row_timer += delta;
         if self.clear_row_timer > CLEAR_ROW_INTERVAL_MS {
             self.clear_row_timer = 0.0;
-            self.board.clear_and_collapse( &self.full_rows );
+            self.board.clear_and_collapse();
             // Can we 
             // clear animation flags
-            self.full_rows = Vec::new(); 
             self.clear_row_timer = 0.0;
             self.flash_anim_color = WHITE;
             self.play_state = PlayState::Playing;

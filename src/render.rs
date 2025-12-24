@@ -19,7 +19,7 @@ pub fn draw_frame(game: &GameState) {
             },
             PlayState::Playing => {
                 draw_board(&game.board);
-                draw_piece(&game.current);
+                draw_piece(&game.current_piece);
                 draw_score(game.score);
             },
             PlayState::ClearBlocks => {

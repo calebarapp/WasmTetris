@@ -90,11 +90,12 @@ impl Board {
         out
     }
     
-    pub fn clear_and_collapse(&mut self, rows: &Vec<i32>) {
+    pub fn clear_and_collapse(&mut self) {
+        let rows = self.full_rows();
         if rows.is_empty() { return; }
 
         let mut cleared = vec![false; GRID_H as usize];
-        for &row in rows {
+        for row in rows {
             if (0..GRID_H as i32).contains(&row) {
                 cleared[row as usize] = true;
             }
